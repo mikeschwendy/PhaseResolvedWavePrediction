@@ -4,7 +4,7 @@ close all
 
 % Load waverider data from Station Papa Jan. 2015
 loadSimulatedData = true;
-plotSurface = true;
+plotSurface = false;
 plotFrequencySpectra = true;
 plotRenderedFrames = false;
 resultsDir = '/Users/mike/Documents/UW/Research/Results/SurfaceSimulations_2D';
@@ -158,7 +158,7 @@ if ~loadSimulatedData
     % Define simulation domain
     dx = 4;
     dt = 1;
-    L = 1000;
+    L = 500;
     T = 300;
     Nx = round(L/dx);
     Ny = Nx+1;
@@ -328,8 +328,8 @@ c = sqrt(9.8./k);
 %max_time_delay = max(max(circle_radius)./c(2:end));
 
 % Set target points
-x_target = (0:1:round(Nx/2))*dx;
-y_target = (round(Ny/2-50):round(Ny/2+50))*dy;
+x_target = (round(Nx/4):1:round(Nx/2))*dx;
+y_target = (round(Ny/2-20):round(Ny/2+20))*dy;
 nx_target = length(x_target);
 ny_target = length(y_target);
 [x_target,y_target] = meshgrid(x_target,y_target);
