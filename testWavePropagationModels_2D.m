@@ -3,8 +3,8 @@ clearvars
 close all
 
 plotPointComparison = true;
-plotSurfaceComparison = true;
-plotRenderedFrames = true;
+plotSurfaceComparison = false;
+plotRenderedFrames = false;
 
 % Load simulation data
 %SimulationDirectory = '/Users/mike/Documents/UW/Research/Results/SurfaceSimulations_2D/Waverider_StationPapa_Jan2015/Waverider_05Jan2015_L500_dx4_T300_dt1';
@@ -13,8 +13,8 @@ load([SimulationDirectory '/SimulationData.mat'],'Y','dx','dt','L','T','Nx','Nt'
 plotDirectory = SimulationDirectory;
 
 % Choose hypothetical buoy locations
+%arrayShape = 'circle';
 arrayShape = 'circle';
-%arrayShape = 'box';
 
 switch arrayShape
     case 'circle'
@@ -49,29 +49,35 @@ H_sig = spec2char(S_Measured,'Hm0');
 
 % set time bursts duration/delay etc
 T_meas = 15; %sec
-T_pred = 10; %sec
-T_delay = 5; %sec
-overlap = 1;
+T_pred = 15; %sec
+T_delay = 2; %sec
+overlap = 0.5;
 
 % set least squares model values
-k = logspace(-3,0,51)*2*pi;
+k = logspace(-3,1,51)*2*pi;
 theta_wavenumber = linspace(-180,180,19)*pi/180;
 theta_wavenumber = theta_wavenumber(2:end);
-reg_factor = 5e-2;
+reg_factor = 5e2;
 
 % Set target point(s)
 x_target = (round(Nx/4):1:round(Nx/2))*dx;
 y_target = (round(Ny/2-20):round(Ny/2+20))*dy;
+%ind = 1;
+%x_target = x_array(ind);
+%y_target = y_array(ind);
 
 % Calculate least squares prediction
 [z_target_pred,z_target_truth,t_pred] = runLeastSquaresPrediction(...
     x_target,y_target,dt,x_array,y_array,z_array,...
     k,theta_wavenumber,reg_factor,T_meas,T_pred,T_delay,overlap,Y);
 
+% [z_target_pred,z_target_truth,t_pred] = runLeastSquaresPrediction_Swifts(...
+%     repmat(x_array,[Nt,1]),repmat(y_array,[Nt,1]),z_array',ind,dt,...
+%     k,theta_wavenumber,reg_factor,T_meas,T_pred,T_delay,overlap);
 %% Compare time series prediction at point
 if plotPointComparison
-    x_target_ind_plot = find(x_target == round(Nx/4)*dx);
-    y_target_ind_plot = find(y_target == round(Ny/2)*dy);
+    x_target_ind_plot = 1;%find(x_target == round(Nx/4)*dx);
+    y_target_ind_plot = 1;%find(y_target == round(Ny/2)*dy);
     target_ind_plot = (x_target_ind_plot-1)*length(y_target)+y_target_ind_plot;
     t_pred_plot = squeeze(t_pred(:,:,target_ind_plot));
     z_target_pred_plot = squeeze(z_target_pred(:,:,target_ind_plot));

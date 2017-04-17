@@ -15,6 +15,7 @@ y_array = round((y_center+xy_array_rot(2,:))/dy)*dy;
 
 x_array_ind = nan(num_buoys,1);
 y_array_ind = nan(num_buoys,1);
+Nt = size(Y.Z,3);
 z_array = nan(num_buoys,Nt);
 for i = 1:num_buoys
     x_array_ind(i) = find(Y.x == x_array(i));

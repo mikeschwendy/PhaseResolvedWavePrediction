@@ -94,7 +94,7 @@ ylabel('y [km]')
 % set time bursts duration/delay etc
 T_meas = 30; %sec
 T_pred = 30; %sec
-T_delay = 0; %sec
+T_delay = 10; %sec
 overlap = 1;
 
 % set least squares model values
