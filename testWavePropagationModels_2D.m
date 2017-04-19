@@ -2,8 +2,8 @@ clc
 clearvars
 close all
 
-plotPointComparison = true;
-plotSurfaceComparison = false;
+plotPointComparison = false;
+plotSurfaceComparison = true;
 plotRenderedFrames = false;
 
 % Load simulation data
@@ -62,18 +62,20 @@ reg_factor = 5e2;
 % Set target point(s)
 x_target = (round(Nx/4):1:round(Nx/2))*dx;
 y_target = (round(Ny/2-20):round(Ny/2+20))*dy;
+[x_target,y_target] = meshgrid(x_target,y_target);
 %ind = 1;
 %x_target = x_array(ind);
 %y_target = y_array(ind);
 
-% Calculate least squares prediction
-[z_target_pred,z_target_truth,t_pred] = runLeastSquaresPrediction(...
-    x_target,y_target,dt,x_array,y_array,z_array,...
-    k,theta_wavenumber,reg_factor,T_meas,T_pred,T_delay,overlap,Y);
+% % Calculate least squares prediction
+% [z_target_pred,z_target_truth,t_pred] = runLeastSquaresPrediction(...
+%     x_target,y_target,dt,x_array,y_array,z_array,...
+%     k,theta_wavenumber,reg_factor,T_meas,T_pred,T_delay,overlap,Y);
 
-% [z_target_pred,z_target_truth,t_pred] = runLeastSquaresPrediction_Swifts(...
-%     repmat(x_array,[Nt,1]),repmat(y_array,[Nt,1]),z_array',ind,dt,...
-%     k,theta_wavenumber,reg_factor,T_meas,T_pred,T_delay,overlap);
+[z_target_pred,t_pred] = runLeastSquaresPrediction_Swifts(...
+    x_target,y_target,repmat(x_array',[Nt,1]),repmat(y_array',[Nt,1]),z_array',dt,...
+    k,theta_wavenumber,reg_factor,T_meas,T_pred,T_delay,overlap);
+
 %% Compare time series prediction at point
 if plotPointComparison
     x_target_ind_plot = 1;%find(x_target == round(Nx/4)*dx);
@@ -134,17 +136,19 @@ if plotSurfaceComparison
     [burst_ind,time_ind] = ind2sub([size(t_pred,1),size(t_pred,2)],ind_unique);
     
     movieInd = find(t_unique>0 & t_unique<60);
-    ny_target = length(y_target);
-    nx_target = length(x_target);
+    %ny_target = length(y_target);
+    %nx_target = length(x_target);
+    [ny_target,nx_target] = size(x_target);
     for i = 1:length(movieInd)
         fig(2) = figure(2); clf(fig(2));
         fig(2).Position = [2 2 5 8];
         fig(2).PaperPosition = fig(2).Position;
         subplot(2,1,1)
         hold on
-        pcolor(x_target,y_target',...
-            reshape(squeeze(z_target_truth(burst_ind(movieInd(i)),time_ind(movieInd(i)),:)),[ny_target,nx_target]))       
-        shading flat
+       % pcolor(x_target,y_target',...
+       %     reshape(squeeze(z_target_truth(burst_ind(movieInd(i)),time_ind(movieInd(i)),:)),[ny_target,nx_target]))       
+       pcolor(Y.x,Y.y',Y.Z(:,:,t_unique(movieInd(i))))    
+       shading flat
         plot(x_array,y_array,'or')
         hold off
         set(gca,'CLim',1/2*[-H_sig H_sig],'XLim',[0 Nx*dx],'YLim',[0 Ny*dy])
@@ -167,7 +171,7 @@ if plotSurfaceComparison
         cbar = colorbar;
         ylabel(cbar,'\eta (m)')
         box('on')
-        print(fig(2),[surfacePlotDirectory '/SurfacePrediction_' sprintf('%03d',i-minInd) '.png'],'-dpng')
+        print(fig(2),[surfacePlotDirectory '/SurfacePrediction_' sprintf('%03d',i) '.png'],'-dpng')
     end
 end
 %% Rendered Frames
