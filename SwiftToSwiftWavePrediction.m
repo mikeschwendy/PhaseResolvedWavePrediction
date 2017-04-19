@@ -5,7 +5,7 @@ close all
 swiftDirectory = '/Users/mike/Documents/UW/Research/Data/LC-DRI data';
 swiftIDs = {'22','23','24','25'};
 %swiftDate = '28Mar2017'; swiftTime = '19_02';
-swiftDate = '02Apr2017'; swiftDate0 = '02Apr2017';  swiftTime = '23_02';
+swiftDate = '02Apr2017'; swiftDate0 = '02Apr2017';  swiftTime = '23_04';
 
 
 
@@ -124,7 +124,7 @@ reg_factor = 1e3;
 
 [x_target,y_target] = meshgrid(linspace(-100,100,20),linspace(-100,100,21));
 [ny_target,nx_target] = size(x_target);
-[z_target_pred,t_pred] = runLeastSquaresPrediction_Swifts(...
+[z_target_pred,t_pred] = runLeastSquaresPrediction_SurfaceReconstruction(...
     x_target,y_target,x_swifts,y_swifts,z_swifts,0.2,...
     k,theta_wavenumber,reg_factor,T_meas,T_pred,T_delay,overlap);
 [num_bursts,Nt_pred,~] = size(z_target_pred);
@@ -133,7 +133,8 @@ z_target_pred = reshape(z_target_pred,[num_bursts,Nt_pred,ny_target,nx_target]);
 %%
 if true
 fig(8) = figure(8); clf(fig(8));
-for j = 2:size(z_target_pred,1)
+k = 0;
+for j = 4:size(z_target_pred,1)
     for i = 1:size(z_target_pred,2)
         clf(fig(8));
         subplot(4,1,1:3)
@@ -152,6 +153,8 @@ for j = 2:size(z_target_pred,1)
         plot(t_i*ones(numSwifts,1),z_swifts(t_ind,:),'o')
         hold off
         set(gca,'YLim',[-1 1],'XLim',[100 200])
+        print('-djpeg',['/Users/mike/Documents/UW/Research/Results/LC_DRI_Results/SurfaceReconstruction/Frame_' sprintf('%03d',k) '.jpg'])
+        k = k+1;
         pause(.1)
     end
 end
