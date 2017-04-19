@@ -4,9 +4,8 @@ close all
 
 swiftDirectory = '/Users/mike/Documents/UW/Research/Data/LC-DRI data';
 swiftIDs = {'22','23','24','25'};
-swiftDate = '28Mar2017';
-swiftTime = '19_02';
-
+%swiftDate = '28Mar2017'; swiftTime = '19_02';
+swiftDate = '02Apr2017'; swiftTime = '23_02';
 
 swiftFiles = dir([swiftDirectory '/*.mat']);
 numSwifts = length(swiftIDs);
@@ -69,45 +68,51 @@ hold on
 for i = 1:numSwifts
     plot(f_z(i,:),S_z(i,:),'-k')
 end
-for i = 1:numSwifts
-    plot(f_u(i,:),S_u(i,:)./((2*pi*f_u).^2),'-b')
-end
-for i = 1:numSwifts
-    plot(f_v(i,:),S_v(i,:)./((2*pi*f_v).^2),'-r')
-end
+% for i = 1:numSwifts
+%     plot(f_u(i,:),S_u(i,:)./((2*pi*f_u).^2),'-b')
+% end
+% for i = 1:numSwifts
+%     plot(f_v(i,:),S_v(i,:)./((2*pi*f_v).^2),'-r')
+% end
 hold off
-set(gca,'XScale','log','YScale','log')
-
+set(gca,'XScale','linear','YScale','linear')
+xlim([0 0.6])
+xlabel('f (Hz)')
+ylabel('E (m^2/Hz)')
 %%
 fig(4) = figure(4); clf(fig(4));
 hold on
 for i = 1:numSwifts
-    scatter((utm(i).x-meanX_tot)/1e3,(utm(i).y-meanY_tot)/1e3,6,imuData(i).EkfNav.time_stamp)
+    scatter((utm(i).x(:)-meanX_tot),(utm(i).y(:)-meanY_tot),6,imuData(i).EkfNav.time_stamp(:)/1e6)
 end
 hold off
-xlim([-0.2 0.2])
-ylim([-0.2 0.2])
-xlabel('x [km]')
-ylabel('y [km]')
-
+xlim([-200 200])
+ylim([-200 200])
+xlabel('x (m)')
+ylabel('y (m)')
+cbar = colorbar;
+ylabel(cbar,'t (s)')
 %%
 % set time bursts duration/delay etc
 T_meas = 30; %sec
 T_pred = 30; %sec
-T_delay = 10; %sec
+T_delay = -30; %sec
 overlap = 1;
 
 % set least squares model values
-k = logspace(-3,-1,51)*2*pi;
-theta_wavenumber = linspace(-180,180,10)*pi/180;
+k = logspace(-3,-1,31)*2*pi;
+theta_wavenumber = linspace(-180,180,19)*pi/180;
 theta_wavenumber = theta_wavenumber(2:end);
-reg_factor = 1e0;
+reg_factor = 1e2;
     
 for i = 1:numSwifts
     [z_pred(:,:,i),z_truth(:,:,i),t_pred(:,:,i)] = runLeastSquaresPrediction_Swifts(...
         x_swifts,y_swifts,z_swifts,i,0.2,...
         k,theta_wavenumber,reg_factor,T_meas,T_pred,T_delay,overlap);
 end
+
+%%
+H_sig = 1;
 
 fig(6) = figure(6); clf(fig(6));
 for i = 1:numSwifts
@@ -116,17 +121,23 @@ for i = 1:numSwifts
     plot(t_pred(:,:,i)',z_pred(:,:,i)','-k')
     plot((0:length(t)-1)*0.2,z_swifts(:,i),'-')
     hold off
-    ylim([-2 2])
+    ylim([-H_sig H_sig])
+    xlim([100 400])
+    legend('Predicted','Measured')
+    ylabel('\eta (m)')
+    title(sprintf('Swift %d',i))
 end
+xlabel('t (s)')
 
+minT = 100;
 fig(7) = figure(7); clf(fig(7));
-H_sig = 2;
 for i = 1:numSwifts
+    t_pred_i = t_pred(:,:,i);
     z_truth_i = z_truth(:,:,i);
     z_pred_i = z_pred(:,:,i);
     subplot(2,2,i)
     hold on
-    plot(z_truth_i(:),z_pred_i(:),'.')
+    plot(z_truth_i(t_pred_i>minT),z_pred_i(t_pred_i>minT),'.')
     [z_regress,z_regress_int,z_regress_resid,~,regress_stats] = regress(z_truth_i(:),z_pred_i(:));
     regress_r2 = regress_stats(1);
     plot([-H_sig H_sig],[-H_sig H_sig],'--k')
@@ -134,6 +145,7 @@ for i = 1:numSwifts
     hold off
     xlim([-H_sig H_sig])
     ylim([-H_sig H_sig])
-
+    xlabel('Measured')
+    ylabel('Predicted')
+    title(sprintf('Swift %d',i))
 end
-
