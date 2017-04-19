@@ -2,8 +2,8 @@ clc
 clearvars
 close all
 
-plotPointComparison = false;
-plotSurfaceComparison = true;
+performPointComparison = true;
+performSurfaceReconstruction = false;
 plotRenderedFrames = false;
 
 % Load simulation data
@@ -51,7 +51,7 @@ H_sig = spec2char(S_Measured,'Hm0');
 T_meas = 15; %sec
 T_pred = 15; %sec
 T_delay = 2; %sec
-overlap = 0.5;
+overlap = 1;
 
 % set least squares model values
 k = logspace(-3,1,51)*2*pi;
@@ -59,39 +59,26 @@ theta_wavenumber = linspace(-180,180,19)*pi/180;
 theta_wavenumber = theta_wavenumber(2:end);
 reg_factor = 5e2;
 
-% Set target point(s)
-x_target = (round(Nx/4):1:round(Nx/2))*dx;
-y_target = (round(Ny/2-20):round(Ny/2+20))*dy;
-[x_target,y_target] = meshgrid(x_target,y_target);
-%ind = 1;
-%x_target = x_array(ind);
-%y_target = y_array(ind);
-
-% % Calculate least squares prediction
-% [z_target_pred,z_target_truth,t_pred] = runLeastSquaresPrediction(...
-%     x_target,y_target,dt,x_array,y_array,z_array,...
-%     k,theta_wavenumber,reg_factor,T_meas,T_pred,T_delay,overlap,Y);
-
-[z_target_pred,t_pred] = runLeastSquaresPrediction_Swifts(...
-    x_target,y_target,repmat(x_array',[Nt,1]),repmat(y_array',[Nt,1]),z_array',dt,...
-    k,theta_wavenumber,reg_factor,T_meas,T_pred,T_delay,overlap);
-
 %% Compare time series prediction at point
-if plotPointComparison
-    x_target_ind_plot = 1;%find(x_target == round(Nx/4)*dx);
-    y_target_ind_plot = 1;%find(y_target == round(Ny/2)*dy);
-    target_ind_plot = (x_target_ind_plot-1)*length(y_target)+y_target_ind_plot;
-    t_pred_plot = squeeze(t_pred(:,:,target_ind_plot));
-    z_target_pred_plot = squeeze(z_target_pred(:,:,target_ind_plot));
-    z_target_truth_plot = squeeze(z_target_truth(:,:,target_ind_plot));
+if performPointComparison
+    
+    x_target = repmat(x_center,[Nt,1]);
+    y_target = repmat(y_center,[Nt,1]);
+    z_target = squeeze(Y.Z(y_center_ind,x_center_ind,:));
+    
+    [z_pred,z_truth,t_pred] = runLeastSquaresPrediction_PointComparison(...
+        x_target,y_target,z_target,dt,repmat(x_array',[Nt,1]),repmat(y_array',[Nt,1]),z_array',...
+        k,theta_wavenumber,reg_factor,T_meas,T_pred,T_delay,overlap);
+    
+    
     fig(1) = figure(1);
     clf(fig(1))
-    fig(1).Position = [1 1 8 6];
-    fig(1).PaperPosition = fig(1).Position;
+    %fig(1).Position = [1 1 8 6];
+    %fig(1).PaperPosition = fig(1).Position;
     subplot(2,1,1)
     hold on
-    p1 = plot(t_pred_plot',z_target_truth_plot','-b');
-    p2 = plot(t_pred_plot',z_target_pred_plot','-k');
+    p1 = plot(t_pred',z_truth','-b');
+    p2 = plot(t_pred',z_pred','-k');
     hold off
     box on
     legend([p1(1),p2(1)],{'Measured','Predicted'})
@@ -105,15 +92,15 @@ if plotPointComparison
     pcolor(repmat(Y.x',[Ny,1]),repmat(Y.y,[1,Nx]),Y.Z(:,:,1))
     shading flat
     plot(x_array,y_array,'or')
-    plot(x_target(x_target_ind_plot),y_target(y_target_ind_plot),'ok')
+    plot(x_target,y_target,'ok')
     hold off
     set(gca,'CLim',[-H_sig H_sig],'XLim',[0 Nx*dx],'YLim',[0 Ny*dy])
     xlabel('x [m]'), ylabel('y [m]'),
     
     subplot(2,4,7:8)
-    [z_regress,z_regress_int,z_regress_resid,~,regress_stats] = regress(z_target_truth_plot(:),z_target_pred_plot(:));
+    [z_regress,z_regress_int,z_regress_resid,~,regress_stats] = regress(z_truth(:),z_pred(:));
     regress_r2 = regress_stats(1);
-    plot(z_target_pred_plot(:),z_target_truth_plot(:),'.')
+    plot(z_pred(:),z_truth(:),'.')
     hold on
     plot([-H_sig H_sig],[-H_sig H_sig],'--k')
     plot([-H_sig H_sig],[-H_sig H_sig].*z_regress,'--b')
@@ -126,8 +113,16 @@ if plotPointComparison
     print(fig(1),'-dpng',[plotDirectory '/PointPrediction.png'])
     
 end
-%% Compare surface reconstruction
-if plotSurfaceComparison
+%% Make surface reconstruction
+if performSurfaceReconstruction
+    x_target = (round(Nx/4):1:round(Nx/2))*dx;
+    y_target = (round(Ny/2-20):round(Ny/2+20))*dy;
+    [x_target,y_target] = meshgrid(x_target,y_target);
+    
+    [z_target_pred,t_pred] = runLeastSquaresPrediction_SurfaceReconstruction(...
+        x_target,y_target,repmat(x_array',[Nt,1]),repmat(y_array',[Nt,1]),z_array',dt,...
+        k,theta_wavenumber,reg_factor,T_meas,T_pred,T_delay,overlap);
+    
     surfacePlotDirectory = [plotDirectory '/SurfacePrediction'];
     mkdir(surfacePlotDirectory)
     
@@ -141,14 +136,14 @@ if plotSurfaceComparison
     [ny_target,nx_target] = size(x_target);
     for i = 1:length(movieInd)
         fig(2) = figure(2); clf(fig(2));
-        fig(2).Position = [2 2 5 8];
-        fig(2).PaperPosition = fig(2).Position;
+        %fig(2).Position = [2 2 5 8];
+        %fig(2).PaperPosition = fig(2).Position;
         subplot(2,1,1)
         hold on
-       % pcolor(x_target,y_target',...
-       %     reshape(squeeze(z_target_truth(burst_ind(movieInd(i)),time_ind(movieInd(i)),:)),[ny_target,nx_target]))       
-       pcolor(Y.x,Y.y',Y.Z(:,:,t_unique(movieInd(i))))    
-       shading flat
+        % pcolor(x_target,y_target',...
+        %     reshape(squeeze(z_target_truth(burst_ind(movieInd(i)),time_ind(movieInd(i)),:)),[ny_target,nx_target]))
+        pcolor(Y.x,Y.y',Y.Z(:,:,t_unique(movieInd(i))))
+        shading flat
         plot(x_array,y_array,'or')
         hold off
         set(gca,'CLim',1/2*[-H_sig H_sig],'XLim',[0 Nx*dx],'YLim',[0 Ny*dy])
@@ -173,58 +168,57 @@ if plotSurfaceComparison
         box('on')
         print(fig(2),[surfacePlotDirectory '/SurfacePrediction_' sprintf('%03d',i) '.png'],'-dpng')
     end
-end
-%% Rendered Frames
-if plotRenderedFrames
-    RenderedMovieFramesDir = [plotDirectory '/SurfaceMovieFrames_Rendered'];
-    mkdir(RenderedMovieFramesDir)
-    [xs,ys,zs] = sphere;
-    x_target_ind_plot = find(x_target == round(Nx/4)*dx);
-    y_target_ind_plot = find(y_target == round(Ny/2)*dy);
-    target_ind_plot = (x_target_ind_plot-1)*length(y_target)+y_target_ind_plot;
-    t_pred_plot = squeeze(t_pred(:,:,target_ind_plot));
-    z_target_pred_plot = squeeze(z_target_pred(:,:,target_ind_plot));
-    
-    x_target_ind_total = find(Y.x == round(Nx/4)*dx);
-    y_target_ind_total = find(Y.y == round(Ny/2)*dy); 
-    
-    i1 = min(t_pred_plot(:))/dt;
-    movieLength = 120; %seconds
-    for i = i1:i1+(movieLength/dt)
-        fig(3) = figure(3); clf(fig(3));
-        fig(3).Position = [2 2 16 10];
-        fig(3).PaperPosition = fig(3).Position;
-        subplot(2,1,1)
-        hold on
-        surf(repmat(Y.x',[Ny,1]),repmat(Y.y,[1,Nx]),Y.Z(:,:,i),Y.Z(:,:,i))
-        for j = 1:length(x_array)
-            ssphere = surf(x_array(j)+xs,y_array(j)+ys,z_array(j,i)+zs,repmat(shiftdim([1 1 0],-1),[21 21 1]));
+    %% Rendered Frames
+    if plotRenderedFrames
+        RenderedMovieFramesDir = [plotDirectory '/SurfaceMovieFrames_Rendered'];
+        mkdir(RenderedMovieFramesDir)
+        [xs,ys,zs] = sphere;
+        x_target_ind_plot = find(x_target == round(Nx/4)*dx);
+        y_target_ind_plot = find(y_target == round(Ny/2)*dy);
+        target_ind_plot = (x_target_ind_plot-1)*length(y_target)+y_target_ind_plot;
+        t_pred_plot = squeeze(t_pred(:,:,target_ind_plot));
+        z_target_pred_plot = squeeze(z_target_pred(:,:,target_ind_plot));
+        
+        x_target_ind_total = find(Y.x == round(Nx/4)*dx);
+        y_target_ind_total = find(Y.y == round(Ny/2)*dy);
+        
+        i1 = min(t_pred_plot(:))/dt;
+        movieLength = 120; %seconds
+        for i = i1:i1+(movieLength/dt)
+            fig(3) = figure(3); clf(fig(3));
+            fig(3).Position = [2 2 16 10];
+            fig(3).PaperPosition = fig(3).Position;
+            subplot(2,1,1)
+            hold on
+            surf(repmat(Y.x',[Ny,1]),repmat(Y.y,[1,Nx]),Y.Z(:,:,i),Y.Z(:,:,i))
+            for j = 1:length(x_array)
+                ssphere = surf(x_array(j)+xs,y_array(j)+ys,z_array(j,i)+zs,repmat(shiftdim([1 1 0],-1),[21 21 1]));
+            end
+            surf(Y.x(x_target_ind_total)+xs,Y.y(y_target_ind_total)+ys,squeeze(Y.Z(y_target_ind_total,x_target_ind_total,i))+zs,repmat(shiftdim([1 0 0],-1),[21 21 1]));
+            colormap gray
+            shading interp
+            lighting phong
+            material shiny
+            hold off
+            axis equal
+            set(gca,'ZLim',[-H_sig H_sig],'CLim',[-H_sig H_sig],'XLim',...
+                [x_target(x_target_ind_plot)-50,x_target(x_target_ind_plot)+250],...
+                'YLim',[y_target(y_target_ind_plot)-150,y_target(y_target_ind_plot)+200])
+            view(0,15)
+            axis off
+            light
+            subplot(2,1,2)
+            hold on
+            p1 = plot(Y.t(i1:i),squeeze(Y.Z(y_target_ind_total,x_target_ind_total,i1:i)),'-k');
+            p2 = plot(t_pred_plot(t_pred_plot/dt<i),z_target_pred_plot(t_pred_plot/dt<i),'sb');
+            box on
+            hold off
+            legend('Measured','Predicted')
+            xlabel('Time (s)')
+            ylabel('\eta [m]')
+            ylim([-H_sig H_sig]*2/3)
+            xlim([i1 i1+120])
+            print(fig(3),[RenderedMovieFramesDir '/SimulationFrame_' sprintf('%03d',i-i1+1) '.png'],'-dpng')
         end
-        surf(Y.x(x_target_ind_total)+xs,Y.y(y_target_ind_total)+ys,squeeze(Y.Z(y_target_ind_total,x_target_ind_total,i))+zs,repmat(shiftdim([1 0 0],-1),[21 21 1]));
-        colormap gray
-        shading interp
-        lighting phong
-        material shiny
-        hold off
-        axis equal
-        set(gca,'ZLim',[-H_sig H_sig],'CLim',[-H_sig H_sig],'XLim',...
-            [x_target(x_target_ind_plot)-50,x_target(x_target_ind_plot)+250],...
-            'YLim',[y_target(y_target_ind_plot)-150,y_target(y_target_ind_plot)+200])
-        view(0,15)
-        axis off
-        light
-        subplot(2,1,2)
-        hold on
-        p1 = plot(Y.t(i1:i),squeeze(Y.Z(y_target_ind_total,x_target_ind_total,i1:i)),'-k');
-        p2 = plot(t_pred_plot(t_pred_plot/dt<i),z_target_pred_plot(t_pred_plot/dt<i),'sb');
-        box on
-        hold off
-        legend('Measured','Predicted')
-        xlabel('Time (s)')
-        ylabel('\eta [m]')
-        ylim([-H_sig H_sig]*2/3)
-        xlim([i1 i1+120])
-        print(fig(3),[RenderedMovieFramesDir '/SimulationFrame_' sprintf('%03d',i-i1+1) '.png'],'-dpng')
     end
 end
-

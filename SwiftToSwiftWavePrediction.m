@@ -1,4 +1,4 @@
-%clc
+clc
 clearvars
 close all
 
@@ -6,6 +6,9 @@ swiftDirectory = '/Users/mike/Documents/UW/Research/Data/LC-DRI data';
 swiftIDs = {'22','23','24','25'};
 %swiftDate = '28Mar2017'; swiftTime = '19_02';
 swiftDate = '02Apr2017'; swiftDate0 = '02Apr2017';  swiftTime = '23_04';
+
+performSurfaceReconstruction = false;
+performPointComparison = true;
 
 swiftFiles = dir([swiftDirectory '/*.mat']);
 numSwifts = length(swiftIDs);
@@ -47,15 +50,15 @@ end
 
 t = min(minTime):dt:max(maxTime);
 nt = length(t);
-x_swifts = nan(nt,numSwifts);
-y_swifts = nan(nt,numSwifts);
-z_swifts = nan(nt,numSwifts);
+x_swift = nan(nt,numSwifts);
+y_swift = nan(nt,numSwifts);
+z_swift = nan(nt,numSwifts);
 for i = 1:length(imuData)
     [tUnique,indUnique,~] = unique(imuData(i).EkfNav.time_stamp);
-    x_swifts(:,i) = interp1(tUnique,utm(i).x(indUnique),t,'linear',NaN);
-    y_swifts(:,i) = interp1(tUnique,utm(i).y(indUnique),t,'linear',NaN);
+    x_swift(:,i) = interp1(tUnique,utm(i).x(indUnique),t,'linear',NaN);
+    y_swift(:,i) = interp1(tUnique,utm(i).y(indUnique),t,'linear',NaN);
     [tUnique2,indUnique2,~] = unique(imuData(i).ShipMotion.time_stamp);
-    z_swifts(:,i) = interp1(tUnique2,imuData(i).ShipMotion.heave(indUnique2),t,'linear',NaN);
+    z_swift(:,i) = interp1(tUnique2,imuData(i).ShipMotion.heave(indUnique2),t,'linear',NaN);
 end
 
 for i = 1:numSwifts
@@ -101,7 +104,7 @@ ylabel(cbar,'t (s)')
 fig(5) = figure(5); clf(fig(5));
 for i = 1:numSwifts
     subplot(4,1,i)
-    plot(t/1e6,z_swifts(:,i),'k')
+    plot(t/1e6,z_swift(:,i),'k')
     xlim([60 180])
     ylim([-2 2])
 end
@@ -118,59 +121,21 @@ theta_wavenumber = linspace(-180,180,19)*pi/180;
 theta_wavenumber = theta_wavenumber(2:end);
 reg_factor = 1e2;
 
-for i = 1:numSwifts
-    [z_pred(:,:,i),z_truth(:,:,i),t_pred(:,:,i)] = runLeastSquaresPrediction_Swifts(...
-        x_swifts,y_swifts,z_swifts,i,0.2,...
-        k,theta_wavenumber,reg_factor,T_meas,T_pred,T_delay,overlap);
-end
-
-
-% x_array = x_swift(:,setdiff(1:numSwift,ind_target));
-% y_array = y_swift(:,setdiff(1:numSwift,ind_target));
-% z_array = z_swift(:,setdiff(1:numSwift,ind_target));
-% x_target = x_swift(:,ind_target);
-% y_target = y_swift(:,ind_target);
-% z_target = nan(size(x_target));
-
-% [x_target,y_target] = meshgrid(linspace(-100,100,20),linspace(-100,100,21));
-% [ny_target,nx_target] = size(x_target);
-% [z_target_pred,t_pred] = runLeastSquaresPrediction_SurfaceReconstruction(...
-%     x_target,y_target,x_swifts,y_swifts,z_swifts,0.2,...
-%     k,theta_wavenumber,reg_factor,T_meas,T_pred,T_delay,overlap);
-% [num_bursts,Nt_pred,~] = size(z_target_pred);
-% z_target_pred = reshape(z_target_pred,[num_bursts,Nt_pred,ny_target,nx_target]);
-
-%%
-if false
-    fig(8) = figure(8); clf(fig(8));
-    k = 0;
-    for j = 4:size(z_target_pred,1)
-        for i = 1:size(z_target_pred,2)
-            clf(fig(8));
-            subplot(4,1,1:3)
-            pcolor(x_target,y_target,squeeze(z_target_pred(j,i,:,:)))
-            shading('flat')
-            t_i = t_pred(j,i,1);
-            t_ind = round(t_i/0.2);
-            hold on
-            H = scatter(x_swifts(t_ind,:),y_swifts(t_ind,:),100,z_swifts(t_ind,:),'filled');
-            H.MarkerEdgeColor = 'k';
-            hold off
-            set(gca,'CLim',[-1 1],'XLim',[-100 100],'YLim',[-100 100])
-            subplot(4,1,4)
-            plot((0:nt-1)'*0.2*ones(1,numSwifts),z_swifts(:,:))
-            hold on
-            plot(t_i*ones(numSwifts,1),z_swifts(t_ind,:),'o')
-            hold off
-            set(gca,'YLim',[-1 1],'XLim',[100 200])
-            %print('-djpeg',['/Users/mike/Documents/UW/Research/Results/LC_DRI_Results/SurfaceReconstruction/Frame_' sprintf('%03d',k) '.jpg'])
-            k = k+1;
-            pause(.1)
-        end
+if performPointComparison
+    
+    for i = 1:numSwifts
+        x_array = x_swift(:,setdiff(1:numSwifts,i));
+        y_array = y_swift(:,setdiff(1:numSwifts,i));
+        z_array = z_swift(:,setdiff(1:numSwifts,i));
+        x_target = x_swift(:,i);
+        y_target = y_swift(:,i);
+        z_target = z_swift(:,i);
+        
+        [z_pred(:,:,i),z_truth(:,:,i),t_pred(:,:,i)] = runLeastSquaresPrediction_PointComparison(...
+            x_target,y_target,z_target,0.2,x_array,y_array,z_array,...
+            k,theta_wavenumber,reg_factor,T_meas,T_pred,T_delay,overlap);
     end
-end
-
-if true
+    
     H_sig = 1;
     
     fig(6) = figure(6); clf(fig(6));
@@ -178,7 +143,7 @@ if true
         subplot(4,1,i)
         hold on
         plot(t_pred(:,:,i)',z_pred(:,:,i)','-k')
-        plot((0:length(t)-1)*0.2,z_swifts(:,i),'-')
+        plot((0:length(t)-1)*0.2,z_swift(:,i),'-')
         hold off
         ylim([-H_sig H_sig])
         xlim([100 400])
@@ -209,3 +174,43 @@ if true
         title(sprintf('Swift %d',i))
     end
 end
+
+%%
+if performSurfaceReconstruction
+    [x_target,y_target] = meshgrid(linspace(-100,100,20),linspace(-100,100,21));
+    [ny_target,nx_target] = size(x_target);
+    [z_target_pred,t_pred] = runLeastSquaresPrediction_SurfaceReconstruction(...
+        x_target,y_target,x_swift,y_swift,z_swift,0.2,...
+        k,theta_wavenumber,reg_factor,T_meas,T_pred,T_delay,overlap);
+    [num_bursts,Nt_pred,~] = size(z_target_pred);
+    z_target_pred = reshape(z_target_pred,[num_bursts,Nt_pred,ny_target,nx_target]);
+    
+    
+    fig(8) = figure(8); clf(fig(8));
+    k = 0;
+    for j = 4:size(z_target_pred,1)
+        for i = 1:size(z_target_pred,2)
+            clf(fig(8));
+            subplot(4,1,1:3)
+            pcolor(x_target,y_target,squeeze(z_target_pred(j,i,:,:)))
+            shading('flat')
+            t_i = t_pred(j,i,1);
+            t_ind = round(t_i/0.2);
+            hold on
+            H = scatter(x_swift(t_ind,:),y_swift(t_ind,:),100,z_swift(t_ind,:),'filled');
+            H.MarkerEdgeColor = 'k';
+            hold off
+            set(gca,'CLim',[-1 1],'XLim',[-100 100],'YLim',[-100 100])
+            subplot(4,1,4)
+            plot((0:nt-1)'*0.2*ones(1,numSwifts),z_swift(:,:))
+            hold on
+            plot(t_i*ones(numSwifts,1),z_swift(t_ind,:),'o')
+            hold off
+            set(gca,'YLim',[-1 1],'XLim',[100 200])
+            %print('-djpeg',['/Users/mike/Documents/UW/Research/Results/LC_DRI_Results/SurfaceReconstruction/Frame_' sprintf('%03d',k) '.jpg'])
+            k = k+1;
+            pause(.1)
+        end
+    end
+end
+
