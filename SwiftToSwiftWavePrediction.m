@@ -59,13 +59,13 @@ z_swift = nan(nt,numSwifts);
 u_swift = nan(nt,numSwifts);
 v_swift = nan(nt,numSwifts);
 for i = 1:length(imuData)
-%     [tUnique_EkfNav,indUnique_EkfNav,~] = unique(imuData(i).EkfNav.time_stamp);
+    %     [tUnique_EkfNav,indUnique_EkfNav,~] = unique(imuData(i).EkfNav.time_stamp);
     [tUnique_GpsPos,indUnique_GpsPos,~] = unique(imuData(i).GpsPos.time_stamp);
     x_swift(:,i) = interp1(tUnique_GpsPos,utm(i).x(indUnique_GpsPos),t,'linear',NaN);
     y_swift(:,i) = interp1(tUnique_GpsPos,utm(i).y(indUnique_GpsPos),t,'linear',NaN);
     [tUnique_GpsVel,indUnique_GpsVel,~] = unique(imuData(i).GpsPos.time_stamp);
     u_swift(:,i) = interp1(tUnique_GpsVel,imuData(i).GpsVel.vel_e(indUnique_GpsVel),t,'linear',NaN);
-    v_swift(:,i) = interp1(tUnique_GpsVel,imuData(i).GpsVel.vel_n(indUnique_GpsVel),t,'linear',NaN); 
+    v_swift(:,i) = interp1(tUnique_GpsVel,imuData(i).GpsVel.vel_n(indUnique_GpsVel),t,'linear',NaN);
     [tUnique_ShipMotion,indUnique_ShipMotion,~] = unique(imuData(i).ShipMotion.time_stamp);
     z_swift(:,i) = interp1(tUnique_ShipMotion,imuData(i).ShipMotion.heave(indUnique_ShipMotion),t,'linear',NaN);
     goodInd = t>0.5e8;
@@ -126,13 +126,13 @@ T_meas = 30; %sec
 T_pred = 30; %sec
 T_delay = -15; %sec
 overlap = 1/6;
-dt = 0.2; 
+dt = 0.2;
 
 % set least squares model values
-k = logspace(-3,-1,31)*2*pi;
+k = logspace(-3,0,41)*2*pi;
 theta_wavenumber = linspace(-180,180,13)*pi/180;
 theta_wavenumber = theta_wavenumber(2:end);
-reg_factor = 5e0;
+reg_factor = 2e1;
 
 if performPointComparison
     
@@ -151,8 +151,8 @@ if performPointComparison
     
     
     %%
-        H_sig = nanmean(Hs);
-
+    H_sig = nanmean(Hs);
+    
     fig(6) = figure(6); clf(fig(6));
     fig(7) = figure(7); clf(fig(7));
     for i = 1:numSwifts
@@ -164,76 +164,139 @@ if performPointComparison
         z_pred_plot = z_pred_plot(~isnan(z_pred_plot));
         
         
-        H_pred = imag(hilbert(z_pred_plot(:)'))';
-        phi_pred = atan2(H_pred,z_pred_plot(:));
-        A_pred = sqrt(z_pred_plot(:).^2+H_pred.^2);
         H_truth = imag(hilbert(z_truth_plot(:)'))';
         phi_truth = atan2(H_truth,z_pred_plot(:));
         A_truth = sqrt(z_truth_plot(:).^2+H_truth.^2);
-        %A_pred = smooth(A_pred,25);
-        %A_truth = smooth(A_truth,25);
+        A_truth = smooth(A_truth,10);
+        dH_truth = [nan; diff(H_truth,1,1)]/dt;
+        dz_truth = [nan; diff(z_truth_plot,1,1)]/dt;
+        f_truth = 1/(2*pi)*(z_truth_plot.*dH_truth-H_truth.*dz_truth)./(z_truth_plot.^2+H_truth.^2);
+        cg_truth = 9.8./(2*(2*pi*f_truth)); % 1/2*g/omega
+        %cg_truth = medfilt1(cg_truth,25);
         
-        figure(fig(6))
-        subplot(4,1,i)
-        hold on
-        %plot(t_plot(:),z_pred_plot(:),'-k')
-        %plot(t_plot(:),z_truth_plot(:),'-b')
-%        plot((0:length(t)-1)*dt,z_swift(:,i),'-')
-        plot(t_plot(:),A_pred(:),'-k')
-        %plot(t_plot(:),-A_pred(:),'-k')
-        plot(t_plot(:),A_truth(:),'-b')
-        %plot(t_plot(:),-A_truth(:),'-b')
+        H_pred = imag(hilbert(z_pred_plot(:)'))';
+        phi_pred = atan2(H_pred,z_pred_plot(:));
+        A_pred = sqrt(z_pred_plot(:).^2+H_pred.^2);
+        A_pred = smooth(A_pred,10);
+        dH_pred = [nan; diff(H_pred,1,1)]/dt;
+        dz_pred = [nan; diff(z_pred_plot,1,1)]/dt;
+        f_pred = 1/(2*pi)*(z_pred_plot.*dH_pred-H_pred.*dz_pred)./(z_pred_plot.^2+H_pred.^2);
+        cg_pred = 9.8./(2*(2*pi*f_pred)); % 1/2*g/omega
+        %cg_pred = medfilt1(cg_pred,25);
         
-        hold off
-        ylim([-H_sig H_sig])
-        xlim([100 400])
-        legend('Predicted','Measured')
-        ylabel('\eta (m)')
-        title(sprintf('Swift %d',i))
-    xlabel('t (s)')
-    
-    minT = 100;
-    maxT = 450;
-        figure(fig(7))
-        subplot(2,2,i)
-        hold on
-        %plot(z_truth_plot(t_plot>minT),z_pred_plot(t_plot>minT),'.')
-        %[z_regress,z_regress_int,z_regress_resid,~,regress_stats] = regress(z_truth_plot(t_plot>minT),z_pred_plot(t_plot>minT));
-        A_truth_plot = A_truth(t_plot>minT & t_plot<maxT);
-        A_pred_plot = A_pred(t_plot>minT & t_plot<maxT);
-        plot(A_truth_plot,A_pred_plot,'.')
-        [z_regress,z_regress_int,z_regress_resid] = regress(A_pred_plot,A_truth_plot);
-        regress_r2 = 1-nansum(z_regress_resid.^2)/nansum((A_truth_plot-nanmean(A_truth_plot)).^2)
-        plot([0 H_sig],[0 H_sig],'--k')
-        plot([0 H_sig],[0 H_sig].*z_regress,'--b')
-        hold off
-        xlim([0 H_sig])
-        ylim([0 H_sig])
-        xlabel('Measured')
-        ylabel('Predicted')
-        title(sprintf('Swift %d',i))
+        if false
+            figure(fig(6))
+            subplot(4,1,i)
+            hold on
+            plot(t_plot(:),z_pred_plot(:),'-k')
+            plot(t_plot(:),z_truth_plot(:),'-b')
+            %        plot((0:length(t)-1)*dt,z_swift(:,i),'-')
+            %plot(t_plot(:),A_pred(:),'-k')
+            %plot(t_plot(:),cg_pred(:).*A_pred.^2,'-k')
+            
+            %plot(t_plot(:),-A_pred(:),'-k')
+            %plot(t_plot(:),A_truth(:),'-b')
+            %plot(t_plot(:),cg_truth(:).*A_truth.^2,'-b')
+            %plot(t_plot(:),-A_truth(:),'-b')
+            
+            hold off
+            ylim([-H_sig H_sig])
+            xlim([100 400])
+            legend('Predicted','Measured')
+            ylabel('\eta (m)')
+            title(sprintf('Swift %d',i))
+            xlabel('t (s)')
+            
+            minT = 100;
+            maxT = 450;
+            figure(fig(7))
+            subplot(2,2,i)
+            hold on
+            %plot(z_truth_plot(t_plot>minT),z_pred_plot(t_plot>minT),'.')
+            %[z_regress,z_regress_int,z_regress_resid,~,regress_stats] = regress(z_truth_plot(t_plot>minT),z_pred_plot(t_plot>minT));
+            A_truth_plot = A_truth(t_plot>minT & t_plot<maxT).^2;
+            A_pred_plot = A_pred(t_plot>minT & t_plot<maxT).^2;
+            plot(A_truth_plot,A_pred_plot,'.')
+            [z_regress,z_regress_int,z_regress_resid] = regress(A_pred_plot,A_truth_plot);
+            regress_r2 = 1-nansum(z_regress_resid.^2)/nansum((A_truth_plot-nanmean(A_truth_plot)).^2);
+            plot([0 H_sig],[0 H_sig],'--k')
+            plot([0 H_sig],[0 H_sig].*z_regress,'--b')
+            hold off
+            xlim([0 H_sig])
+            ylim([0 H_sig])
+            xlabel('Measured')
+            ylabel('Predicted')
+            title(sprintf('Swift %d',i))
+        end
+        %
+        indTarget = 2;
+        if i == indTarget
+            fig(9) = figure(9); clf(fig(9));
+            
+            subplot(3,3,1:3)
+            box on
+            hold on
+            plot(t_plot(:),z_pred_plot(:))
+            plot(t_plot(:),z_truth_plot(:))
+            hold off
+            ylim([-H_sig H_sig])
+            xlim([100 400])
+            ylabel('\eta (m^2)')
+            legend('Predicted','Measured')
+            
+            subplot(3,3,4:6)
+            box on
+            hold on
+            %plot(t_plot(:),medfilt1(cg_pred(:).*A_pred.^2,25),'-k')
+            %plot(t_plot(:),medfilt1(cg_truth(:).*A_truth.^2,25),'-b')
+            plot(t_plot(:),A_pred.^2)
+            plot(t_plot(:),A_truth.^2)
+            hold off
+            %ylim([0 2000])
+            xlim([100 400])
+            legend('Predicted','Measured')
+            ylabel('H^2 (m^2)')
+            xlabel('t (s)')
+            
+            %subplot(3,3,4:6)
+            
+            
+            %             hold on
+            % for i = 1:numSwifts
+            %     scatter(x_swift(:,i),y_swift(:,i),6,t/1e6)
+            %     %scatter(imuData(i).GpsPos.long,imuData(i).GpsPos.lat,6,imuData(i).GpsPos.time_stamp)
+            %     text(x_swift(end-2,i),y_swift(end-2,i),sprintf('SWIFT %d',i))
+            % end
+            % hold off
+            % xlim([-200 200])
+            % ylim([-200 200])
+            % %xlim(mean(medLon)+[-0.001,0.001])
+            % %ylim(mean(medLat)+[-0.001,0.001])
+            % xlabel('x (m)')
+            % ylabel('y (m)')
+            % cbar = colorbar;
+            % ylabel(cbar,'t (s)')
+            
+            subplot(3,3,8)
+            box on
+            hold on
+            A_truth_plot = A_truth(t_plot>minT & t_plot<maxT).^2;
+            A_pred_plot = A_pred(t_plot>minT & t_plot<maxT).^2;
+            plot(A_truth_plot,A_pred_plot,'.')
+            [z_regress,z_regress_int,z_regress_resid] = regress(A_pred_plot,A_truth_plot);
+            regress_r2 = 1-nansum(z_regress_resid.^2)/nansum((A_truth_plot-nanmean(A_truth_plot)).^2);
+            plot([0 H_sig],[0 H_sig],'--k')
+            plot([0 H_sig],[0 H_sig].*z_regress,'--b')
+            hold off
+            xlim([0 H_sig])
+            ylim([0 H_sig])
+            text(0.1,1,sprintf('R^2 = %.2f',regress_r2))
+            xlabel('Measured')
+            ylabel('Predicted')
+            print(fig(9),'-dpng','/Users/mike/Documents/UW/Research/Results/LC_DRI_Results/EnvelopePrediction.png')
+        end
     end
-    
-    %%
-    fig(9) = figure(9); clf(fig(9));
-    i = 1;
-        t_plot = t_pred(:,1:round(T_pred*overlap/dt),i)';
-        z_pred_plot = z_pred(:,1:round(T_pred*overlap/dt),i)';
-        z_truth_plot = z_truth(:,1:round(T_pred*overlap/dt),i)';
-        t_plot = t_plot(~isnan(z_pred_plot));
-        z_truth_plot = z_truth_plot(~isnan(z_pred_plot));
-        z_pred_plot = z_pred_plot(~isnan(z_pred_plot));
-        
-        subplot(2,2,1:2)
-        hold on
-        plot(t_plot(:),z_pred_plot(:),'-k')
-        plot(t_plot(:),z_truth_plot(:),'-b') 
-        hold off
-        ylim([-H_sig H_sig])
-        xlim([200 300])
-        legend('Predicted','Measured')
 end
-
 %%
 if performSurfaceReconstruction
     [x_target,y_target] = meshgrid(linspace(-100,100,20),linspace(-100,100,21));
@@ -244,12 +307,16 @@ if performSurfaceReconstruction
     [num_bursts,Nt_pred,~] = size(z_target_pred);
     z_target_pred = reshape(z_target_pred,[num_bursts,Nt_pred,ny_target,nx_target]);
     
-    
+    %%
     fig(8) = figure(8); clf(fig(8));
+    fig(8).Units = 'inches';
+    fig(8).Position = [1 1 5 5];
+    fig(8).PaperPosition = fig(8).Position;
     k = 0;
-    burst_start = find(t_pred(:,1)>100,1,'first');
-    for j = 1:size(z_target_pred,1)
+    burst_start = find(t_pred(:,1,1)>100,1,'first');
+    for j = burst_start:size(z_target_pred,1)
         for i = 1:size(z_target_pred,2)
+            figure(8);
             clf(fig(8));
             subplot(4,1,1:3)
             pcolor(x_target,y_target,squeeze(z_target_pred(j,i,:,:)))
@@ -261,15 +328,16 @@ if performSurfaceReconstruction
             H.MarkerEdgeColor = 'k';
             hold off
             set(gca,'CLim',[-1 1],'XLim',[-100 100],'YLim',[-100 100])
+            colorbar
             subplot(4,1,4)
             plot((0:nt-1)'*0.2*ones(1,numSwifts),z_swift(:,:))
             hold on
             plot(t_i*ones(numSwifts,1),z_swift(t_ind,:),'o')
             hold off
             set(gca,'YLim',[-1 1],'XLim',[100 200])
-            %print('-djpeg',['/Users/mike/Documents/UW/Research/Results/LC_DRI_Results/SurfaceReconstruction/Frame_' sprintf('%03d',k) '.jpg'])
+            print('-djpeg',['/Users/mike/Documents/UW/Research/Results/LC_DRI_Results/SurfaceReconstruction/Frame_' sprintf('%03d',k) '.jpg'])
             k = k+1;
-            pause(.1)
+            %pause(.1)
         end
     end
 end
