@@ -20,7 +20,7 @@ x_target_vect = repmat(x_target(:)',[Nt_pred,1]);
 y_target_vect = repmat(y_target(:)',[Nt_pred,1]);
 
 % loop over bursts, make least squares prediction
-for i = 1:8%num_bursts
+for i = 1:40;%num_bursts
     % collect buoy array measurements for this burst
     t_target_ind = t_meas_start_ind(i):(t_meas_start_ind(i)+Nt_meas-1);
     x_array_vect = reshape(x_array(t_target_ind,:),[1,Nt_meas*num_points_array]);
