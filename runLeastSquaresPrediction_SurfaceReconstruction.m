@@ -20,7 +20,7 @@ x_target_vect = repmat(x_target(:)',[Nt_pred,1]);
 y_target_vect = repmat(y_target(:)',[Nt_pred,1]);
 
 % loop over bursts, make least squares prediction
-for i = 1:40;%num_bursts
+for i = 1:num_bursts
     % collect buoy array measurements for this burst
     t_target_ind = t_meas_start_ind(i):(t_meas_start_ind(i)+Nt_meas-1);
     x_array_vect = reshape(x_array(t_target_ind,:),[1,Nt_meas*num_points_array]);
@@ -31,7 +31,7 @@ for i = 1:40;%num_bursts
     t_pred_ind = t_pred_start_ind(i):(t_pred_start_ind(i)+Nt_pred-1);
     t_pred(i,:,:) = repmat((t_pred_ind'-1)*dt,[1,1,num_points_target]);
     % least squares calculation
-    [z_target_pred_vect,~] = leastSquaresWavePropagation_2D(z_array_vect,...
+    [z_target_pred_vect,~] = leastSquaresWavePropagation(z_array_vect,...
         t_array_vect,x_array_vect,y_array_vect,...
         t_pred(i,:,:),x_target_vect(:),y_target_vect(:),k,theta,reg_factor);
     z_target_pred(i,:,:) = reshape(z_target_pred_vect,[1,Nt_pred,num_points_target]);

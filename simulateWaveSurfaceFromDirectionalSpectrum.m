@@ -5,16 +5,16 @@ close all
 
 %% choose data source as SWIFT, CDIP, or Waverider
 % dataSource = 'CDIP';
-% sourceDirectory = '/Users/mike/Dropbox/SanNicolasIsland/CDIP 138 Files';
-% resultsDirectory = '/Users/mike/Documents/UW/Research/Results/SurfaceSimulations_2D/CDIP_SanNicolasIsland_Mar2016';
+% sourceDirectory = '/Users/mikeschwendy/Dropbox/SanNicolasIsland/CDIP 138 Files';
+% resultsDirectory = '/Users/mikeschwendy/Dropbox/PhaseResolvedWavePrediction/SurfaceSimulations/CDIP_SanNicolasIsland_Mar2016';
 
 % dataSource = 'SWIFT';
-% sourceDirectory = '/Users/mike/Documents/UW/Research/Results/PapaSwiftVisualization';
-% resultsDirectory = '/Users/mike/Documents/UW/Research/Results/SurfaceSimulations_2D/SWIFT_StationPapa_Jan2015';
+% sourceDirectory = '/Volumes/Data/PAPA/TGTcruise2015/SWIFT/Reprocessed';
+% resultsDirectory = '/Users/mikeschwendy/Dropbox/PhaseResolvedWavePrediction/SurfaceSimulations/SWIFT_StationPapa_Jan2015';
 
 dataSource = 'Waverider';
-sourceDirectory = '/Users/mike/Documents/UW/Research/Data/StereoTests/Waverider';
-resultsDirectory = '/Users/mike/Documents/UW/Research/Results/SurfaceSimulations_2D/Waverider_StationPapa_Jan2015';
+sourceDirectory = '/Volumes/Data/PAPA/TGTcruise2015/Waverider';
+resultsDirectory = '/Users/mikeschwendy/Dropbox/PhaseResolvedWavePrediction/SurfaceSimulations/Waverider_StationPapa_Jan2015';
 
 %% Load spectra and put in wafo format
 switch dataSource
@@ -45,10 +45,12 @@ switch dataSource
         
     case 'SWIFT'
         % Load SWIFT
-        swiftInd = '01052';
-        load([sourceDirectory '/SWIFTdata_' swiftInd '.mat'],'SWIFT1');
+        %swiftInd = '01052';
+        swiftInd = 2400;
+        load([sourceDirectory '/allSWIFT.mat']);
         
-        [EfthetaSwift, theta, freq] = SWIFTdirectionalspectra(SWIFT1, false);
+        SWIFT = allSWIFT(swiftInd);
+        [EfthetaSwift, theta, freq] = SWIFTdirectionalspectra(SWIFT, false);
         theta(theta > 180) = theta(theta > 180) - 360;
         [theta, dsort] = sort(theta);
         EfthetaSwift = EfthetaSwift(:,dsort);
@@ -56,7 +58,7 @@ switch dataSource
         
         % Transform into WAFO spec struct format
         S_Measured = struct();
-        S_Measured.date = SWIFT1.time;
+        S_Measured.date = SWIFT.time;
         S_Measured.type = 'dir';
         S_Measured.S = EfthetaSwift(~indNan,:)'*180/pi;
         S_Measured.f = freq(~indNan);
@@ -67,11 +69,6 @@ switch dataSource
         % load from CDIP buoy
         cdipFile = [sourceDirectory '/March_2016.dat'];
         % date/time string MUST be of the form 'YYYYMMDDHHmm'
-        % cdipTimestring = '201603010121';
-        % cdipTimestring = '201603020251';
-        % cdipTimestring = '201603030121';
-        % cdipTimestring = '201603040121';
-        % cdipTimestring = '201603040151';
         cdipTimestring = '201603041521';
         [tspc,tsys] = read_cdip_buoy(cdipFile,cdipTimestring);
         [~, Etheta] = MEM_directionalestimator(tspc.a1,tspc.a2,tspc.b1,tspc.b2,tspc.en,0);
@@ -176,7 +173,7 @@ text(dir_peak+5,f_peak,'Peak','color','k')
 plot(dir_mean,f_mean,'xr')
 text(dir_mean+5,f_mean,'Mean','color','r')
 hold off
-xlabel('\theta (degrees)')
+xlabel('\theta (degrees)','interpreter','tex')
 ylabel('f (Hz)')
 print(fig(1),[outputDirectory '/DirectionalSpectra.png'],'-dpng')
 
@@ -210,10 +207,9 @@ plot(fSim,SfSim_avg,'-k')
 hold off
 %set(gca,'YScale','log','XScale','log','xlim',[0.05,0.6],'ylim',[1e-4 1e3])
 set(gca,'YScale','linear','XScale','linear','xlim',[0,0.3]);%,'ylim',[0 30])
-legend('Original Waverider Spectrum','Simulation','Stereo','SWIFT',...
-    'location','northeast')
+legend('Original Spectrum','Simulation','location','northeast')
 xlabel('f (Hz)')
-ylabel('E(f) (m^2/Hz)')
+ylabel('E(f) (m^2/Hz)','interpreter','tex')
 subplot(2,1,2)
 plot(Sf_Measured.f,dir_mean_f,'-k','linewidth',2)
 hold on
@@ -222,6 +218,6 @@ plot(Sf_Measured.f,dir_mean_f-dir_spread_f,'-k','linewidth',1)
 hold off
 set(gca,'xlim',[0,0.3],'ylim',[-270,270],'ytick',[-180 -90 0 90 180])
 xlabel('f (Hz)')
-ylabel('\theta (deg)')
+ylabel('\theta (deg)','interpreter','tex')
 legend('Mean Direction','Spread','location','northeast')
 print(fig(2),[outputDirectory '/FrequencySpectra.png'],'-dpng','-r300')

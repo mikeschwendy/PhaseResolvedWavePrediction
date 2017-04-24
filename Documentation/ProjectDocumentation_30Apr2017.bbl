@@ -1,0 +1,32 @@
+\begin{thebibliography}{}
+
+\bibitem[\protect\citeauthoryear{Brodtkorb, Johannesson, Lindgren, Rychlik,
+  Ryd{\'e}n, and Sj{\"o}}{Brodtkorb et~al.}{2000}]{WAFO:2000}
+Brodtkorb, P.~A., P.~Johannesson, G.~Lindgren, I.~Rychlik, J.~Ryd{\'e}n, and
+  E.~Sj{\"o} (2000).
+\newblock Wafo - a matlab toolbox for the analysis of random waves and loads.
+\newblock In {\em Proc. 10'th Int. Offshore and Polar Eng. Conf., ISOPE,
+  Seattle, USA}, Volume~3, pp.\  343--350.
+
+\bibitem[\protect\citeauthoryear{Connell, Rudzinsky, Brundick, Milewski,
+  Kusters, and Farquharson}{Connell et~al.}{2015}]{Connell:2015}
+Connell, B. S.~H., J.~P. Rudzinsky, C.~S. Brundick, W.~M. Milewski, J.~G.
+  Kusters, and G.~Farquharson (2015).
+\newblock Development of an environmental and ship motion forecasting system.
+\newblock {\em Proceedings of the ASME 2015 34th International Conference on
+  Ocean, Offshore and Arctic Engineering\/}.
+
+\bibitem[\protect\citeauthoryear{Dietrich and Newsam}{Dietrich and
+  Newsam}{1997}]{Dietrich:1997}
+Dietrich, C.~R. and G.~N. Newsam (1997).
+\newblock Fast and exact simulation of stationary gaussian processes through
+  circulant embedding of the covariance matrix.
+\newblock {\em SIAM J. Sci. Comput.\/}~{\em 18\/}(4), 1088--1107.
+
+\bibitem[\protect\citeauthoryear{Hals, Falnes, and Moan}{Hals
+  et~al.}{2011}]{Hals:2011}
+Hals, J., J.~Falnes, and T.~Moan (2011).
+\newblock Constrained optimal control of a heaving buoy wave-energy converter.
+\newblock {\em J. Offshore Mech. and Arctic Eng.\/}~{\em 133}.
+
+\end{thebibliography}

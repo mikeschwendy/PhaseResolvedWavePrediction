@@ -1,24 +1,58 @@
-\documentclass[11pt]{amsart}
-\usepackage{geometry}                % See geometry.pdf to learn the layout options. There are lots.
-\geometry{letterpaper}                   % ... or a4paper or a5paper or ... 
-%\geometry{landscape}                % Activate for for rotated page geometry
-%\usepackage[parfill]{parskip}    % Activate to begin paragraphs with an empty line rather than an indent
+\documentclass[11pt]{article}
+%\documentclass[11pt]{amsart}
 \usepackage{graphicx}
-\usepackage{amssymb}
 \usepackage{epstopdf}
+\usepackage{amsmath}
+\usepackage[authoryear]{natbib}
+\bibliographystyle{chicago}
+\usepackage{soul}
+\usepackage{verbatim} %multiline commenting
+\usepackage{framed} %box paragraphs
+\usepackage[font={footnotesize,bf},labelfont=bf]{caption} % font for the figure captions
+%\usepackage[showframe]{geometry}
+\usepackage{geometry}
+\usepackage{layout}
+
+%\documentclass[11pt]{amsart}
+%\usepackage{graphicx}
+%\usepackage{epstopdf}
+%\usepackage{amsmath}
+%\usepackage[authoryear]{natbib}
+%\bibliographystyle{chicago}
+%\usepackage{soul}
+%\usepackage{verbatim} %multiline commenting
+%\usepackage{framed} %box paragraphs
+%\usepackage[font={footnotesize,bf},labelfont=bf]{caption} % font for the figure captions
+%%\usepackage[showframe]{geometry}
+%\usepackage{geometry}
+%%\geometry{letterpaper}
+%%\textwidth =6.5in
+%%\marginparwidth = 0pt
+%%\marginparsep=0pt
+%%\oddsidemargin = 0pt
+%%\hoffset = 0in
+%%\topmargin = 0in
+%%\headheight = 0in
+%%\headsep = 0pt
+%%\footskip=.5in
+%%\textheight=8.5in
+%%\usepackage{layout}
+
+
 \usepackage{listings}
 \usepackage{textcomp}
-\lstset{language=Python,breaklines=true,upquote=true,commentstyle=\normalsize}
+\lstset{language=Python,breaklines=true,upquote=true,commentstyle=\normalsize,frame=single}
 \DeclareGraphicsRule{.tif}{png}{.png}{`convert #1 `dirname #1`/`basename #1 .tif`.png}
 
 \title{Phase-resolved Wave Prediction from a SWIFT Buoy Array}
 \author{Michael Schwendeman}
-\date{30 April, 2017}                                           % Activate to display a given date or no date
+\date{30 April, 2017}  
 
 \begin{document}
+
 \maketitle
 \section{Introduction}
-This project is motivated by a long-standing problem in wave-energy generation.  It is known that wave energy converters (WECs) can produce significant gains in efficiency by using advanced control techniques.  However, such techniques often require advanced knowledge of the incoming waves.  In the ideal case, the system is given an exact trace of the future wave excitation force.  As this is a difficult problem, most WECs are tuned instead based only on the average 30-minute bulk wave parameters. 
+This project is motivated by a long-standing problem in wave-energy generation.  It is known that wave energy converters (WECs) can produce significant gains in efficiency by using advanced control techniques.  However, such techniques often require advanced knowledge of the incoming waves \citep[see, for example,][]{Hals:2011}.  In the ideal case, the system is given an exact trace of the future wave excitation force.  As this is a difficult problem, most WECs are tuned instead based only on the average 30-minute bulk wave parameters. 
 
 The goal of this project is to provide a useful prediction of the incident waves on a WEC, using an array of networked buoys.  By useful we mean that when coupled with advanced control techniques, the wave prediction improves upon the WEC performance over just using average wave parameters.
 A related question, which may have widespread scientific applicability, is whether we can construct a realistic approximation of the sea surface from the sparse buoy array.
@@ -67,9 +101,9 @@ As the data streams in, a series of if-statements check for the sync bytes that 
 
  A key piece of the parsing is the dictionary variable \texttt{sbgMessages}.  The \texttt{sbgMessages} dictionary contains all the information from the Firmware Reference Manual on the message ID, message name, message length (in bytes), field names, and field types (e.g. 8-bit unsigned integer, double float, etc.). For example, take the first entry:
  \begin{lstlisting}
-b'\x01': {'name':'Status','intLength':22,'binLength': b'\x16\x00','unpackString':'<LHHLLLH','fields':('time_stamp','general_status','reserved1','com_status','aiding_status','reserved2','reserved3')
+sbgMessages = {b'\x01': {'name':'Status','intLength':22,'binLength': b'\x16\x00','unpackString':'<LHHLLLH','fields':('time_stamp','general_status','reserved1','com_status','aiding_status','reserved2','reserved3'),...
 \end{lstlisting}
- This indicates that these message ID 1 (b`\textbackslash x01' in Python binary syntax) has name `Status,' length of 22 bytes (b`\textbackslash x16\textbackslash x00' in binary), and fields \texttt{`time\_stamp'} (unsigned 32 bit integer, or ``L"), \texttt{`general\_status'} (unsigned 16 bit integer, or ``H"), etc.  All of this information is taken from the Ellipse Firmware Reference Manual.  Thus, it is possible to add entries to the \texttt{sbgMessages} dictionary if new SBG messages are required at a later time. 
+ This indicates that messages with \texttt{msgID}=1 (b`\textbackslash x01' in Python binary syntax) has name `Status,' length of 22 bytes (b`\textbackslash x16\textbackslash x00' in binary), and fields \texttt{`time\_stamp'} (unsigned 32 bit integer, or ``L"), \texttt{`general\_status'} (unsigned 16 bit integer, or ``H"), etc.  All of this information is taken from the Ellipse Firmware Reference Manual.  This format makes it easy to add entries to the \texttt{sbgMessages} dictionary if new SBG messages are required at a later time. 
   
 The function \texttt{parseSbgData} is called by the wrapper function \texttt{parseSbgMessage}, and is responsible for actually translating the binary messages into a usable Python data structure.  The code is quite compact:
  \begin{lstlisting}
@@ -95,14 +129,76 @@ A helpful feature of the system is that data is saved in a buffer until the PC i
 With the above modifications, the system will be able to run on a shipboard PC or embedded system onboard a WEC, allowing it to receive, parse, and save timestamped location and heave data from multiple SWIFTs over the RF Ethernet Bridge.  At which point, the next step will be to implement an algorithm which takes in that data, and outputs a prediction (in real time) of the incoming waves to the WEC.  The next sections outline the progress being made in the development of such an algorithm.
 
 \section{Linear Simulations and Least Squares Prediction Algorithm}
-- Recap Connell et al 2015 algorithm\\
-- Show matlab algorithm.\\
-- No data, want to simulate ocean waves.  Use WAFO toolbox seasim function.  Describe background.\\
+
+\subsection{Least Squares Prediction Algorithm}
+
+Our goal is to develop an algorithm which, given a sparse array of wave measurements, can predict (in some way) the waves that will pass a different point at a later time.  \citet{Connell:2015} describe one such algorithm, which is based on a least squares fit of the measurements to different wave components, which are then propagated forward in time by assuming linear dispersion.  Given enough observations and minimal nonlinearity, this method yields a highly accurate time-domain, phase-resolved forecast of the approaching waves.  The  \citet{Connell:2015} paper is written around the use of a coherent Doppler radar for making the wave observations.  The advantage of radar over a sparse buoy is in the much larger number of observations, with much better spatial coverage.  One downside is that the radar can only estimate the radial wave orbital velocity, rather than surface elevation, which slightly complicates the analysis.  
+
+The algorithm is based around the representation of the sea surface as a sum of individual wave components, as in
+\begin{eqnarray} \label{eq:WaveComponents}
+\eta(\mathbf{x},t) = \Re \left(\sum_{n=1}^{N}A_n \exp(i(\mathbf{x}\cdot\mathbf{k}_n-\omega_nt))\right)
+\end{eqnarray}
+where $A_n$, $\mathbf{k}_n$, and $\omega_n$ are the amplitude, wavenumber, and frequency of each component.  Assuming linear dispersion, then gives
+\begin{eqnarray}
+\omega = \sqrt{gk}
+\end{eqnarray}
+where $g$ is gravitational acceleration and 
+\begin{eqnarray}
+k=\sqrt{k_x^2+k_y^2}.  
+\end{eqnarray}
+This equation can be expressed in matrix form as
+\begin{eqnarray}
+\mathbf{\eta} = \mathbf{P}\mathbf{A}
+\end{eqnarray}
+where $\mathbf{P}$ is an $N\times M$ matrix with elements
+\begin{eqnarray}
+P_{n,m} = \exp(i(\mathbf{x}_m\cdot\mathbf{k}_n-\omega_n t_m)),
+\end{eqnarray}
+called the propagator matrix.  $\mathbf{\eta}$ is an $M\times1$ vector of observations, and $\mathbf{A}$ is an $N\times1$ vector of unknown wave amplitudes.  If $M>N$, this is an overdetermined system of equations, such that $\mathbf{A}$ can be fit using the linear least squares method.  With the component amplitudes determined in this way, the surface elevation at a desired time and place can be projected using equation \ref{eq:WaveComponents}
+
+The least squares prediction algorithm is implemented in Matlab in the function \texttt{\\leastSquaresWavePropagation.m}.  Below is a slightly simplified version of the code:
+
+\lstset{language=Matlab}
+ \begin{lstlisting}
+function [z2,zc] = leastSquaresWavePropagation_2D(z1,t1,x1,y1,t2,x2,y2,k,theta,reg_factor)
+
+kx = k*cos(theta');
+ky = k*sin(theta');
+omega = sqrt(9.8*k)*ones(size(theta'));
+P1 = [cos(x1*kx'+y1*ky'-t1*omega'),sin(x1*kx'+y1*ky'-t1*omega')];
+A = ridge(z1,P1,reg_factor,0);
+P2 = [cos(x2*kx'+y2*ky'-t2*omega'),sin(x2*kx'+y2*ky'-t2*omega')];
+z2 = P2*A(2:end);
+end
+ \end{lstlisting}
+
+Note that the code above shows two slight differences from how the algorithm was first described.  First, is that the wave components are expressed as sines and cosines, rather than the real part of a complex exponential.  In theory, these representations are exactly the same.  However for a reason that is not clear, when complex exponentials are used, the fitted result is off by a factor of two.  This can be readily tested with simple examples using a surface constructed of only a few known components.
+
+The second difference is more conceptually important.  It was found often that using a pure least squares solution led to overfitting, thus it was replaced with a regularized least squares method, also called ridge regression.  Overfitting produces large values for the wave component amplitudes, which largely cancel out to reproduce the surface elevation at the observed points, but leads to unphysical surface elevations everywhere else.  Regularization penalizes large values of fitted coefficients,  leading to more realistic results.  However, it also introduces a new parameter, \texttt{reg\_factor}, which controls the degree of penalization.
+
+\subsection{Simulations of Irregular Waves from Directional Spectra}
+This problem is aided greatly by the use of synthetic data to test and refine the forecast algorithm.  Thus, the Wave Analysis for Fatigue and Oceanography (WAFO) toolbox is used to produce realistic simulations of irregular ocean waves in three dimensions \citep{WAFO:2000}.  Specifically, the function \texttt{seasim.m} is run, which uses the discrete spectral approximation of \citet{Dietrich:1997} to efficiently simulate 3D surfaces from a given directional wave spectrum.
+
+The wave simulations are carried out in the script \texttt{simulateWaveSurfaceFromDirectional\\Spectrum.m}.  Two inputs are needed from the user.  The first is a source for the directional energy spectrum.  Three examples are given: SWIFT and Datawell Waverider spectra from Station Papa, and CDIP data from San Nicolas Island.  Regardless of the source, the spectrum must be put in WAFO's specified wave spectra structure format, as described in the file \texttt{spec.pdf} in the WAFO toolbox directory.  For example, the wave directions must be in radians and range from $-\pi$ to $\pi$.  Optionally, the script can rotate the directional spectrum such that the peak wave direction (direction energy is propagating from, not to) is aligned with the $+x$ coordinate. Next, the user must define the simulation grid, including spatial and temporal range ($L$ and $T$, in meters and seconds respectively) and resolution ($dx$ and $dt$).  Note that the simulations run slowly and produce large arrays of data when given overly large domains.
+
+The \texttt{seasim} function takes as input the directional spectrum (in WAFO format), and grid dimensions.  It also takes an \texttt{fftdim} parameter, which defines whether the simulation runs a two-dimensional inverse FFT at each timestep (\texttt{fftdim=2}) or a one-dimensional inverse FFT at each spatial grid cell (\texttt{fftdim=1}).  When spectra are made from the simulation data, they appear to match the original (input) spectra better when using the one-dimensional inverse FFT method.  \texttt{seasim} outputs the simulation results as a structure, \texttt{Y}, which has fields \texttt{x, y, t,} and \texttt{Z}.  \texttt{simulateWaveSurfaceFromDirectionalSpectrum.m} finishes by saving the structure \texttt{Y}, and plotting the input directional spectrum and a check of the original frequency spectra with one calculated from the simulated data.  These usually match well, particularly for large simulations, as shown in Figure \ref{fig:FrequencySpectraComparison}.
+
+\begin{figure}[t]
+    \centering
+    \noindent\includegraphics[width=5.5in]{FrequencySpectra.png}\\
+   \vspace{-0in}\caption{Example comparison of frequency spectra from \texttt{simulateWaveSurfaceFromDirectional\\Spectrum.m}.  Data from a SWIFT at Station Papa, $L = 500$ m, $T = 300$ s, $dx = 4$ m, $dt = 1$ s.}\label{fig:FrequencySpectraComparison}
+\end{figure}
+
+\subsection{Algorithm Performance for Simulated Data}
 - Two functions, one to calculate wave prediction at a point, one to make a gridded surface reconstruction.\\
 - Input parameters: buoy number and array shape, target location or grid size and resolution, wave components and regularization parameter, time windows and delay\\
 - Several examples.  Spectra source.  Buoy shape.  Buoy number.  Regularization and buoy components.  Time window.\\
 - Runtime results\\
-- Future work: constrain least squares solution based on directional wave spectra.  Systematic analysis of parameter relationships to errors.  More realistic simulations - currents, nonlinearity. \\
+
+\subsection{Future Work}
+The simulations show that the least squares forecast algorithm can work well with only a limited number of buoys under ideal conditions, namely, long-crested, energetic swells with little wind sea.  Moreover, they show that there is significant sensitivity based on the spatial location of the buoy array, relative to the wave conditions and the parameters of the least squares fit.  Clearly, there are many questions that the synthetic data cannot address, such as the complicating factor of nonlinearity.  However, to better inform future field experiments, a systematic analysis of the relationship of the different parameters to the forecast error would be useful.  For example, how does the error scale with the ratio of the buoy array separation to the peak wavelength?  How many buoys are needed, and does it change with different wave conditions?  Perhaps most critical is understanding the time window for making a valid forecast, and how that depends on the other parameters.  There is some work being done on this subject in the laboratory of Dick Yue at MIT, particularly his graduate student Yusheng Qi, although it is as yet unpublished.
+
+These simulations also provide a convenient laboratory for experimenting with the forecast algorithm.  One promising idea for improving the algorithm is to add to the least squares cost function a soft constraint based on the directional wave spectra.  Since on average the wave component amplitudes will match the measured spectra, the best guess of the amplitudes for any one window of data would also match the spectra.  This would amount to providing an individual \texttt{reg\_factor} for each component of the fit, although it is not immediately clear how the spectral values would translate into the cost function values (for example, are they proportional?).  Some care would be needed in implementing this strategy.
 
 \section{Evaluation from SWIFT data}
 - Describe LC-DRI experiment.\\
@@ -116,5 +212,8 @@ With the above modifications, the system will be able to run on a shipboard PC o
 - Hardware and IO integration could be ready for testing soon. Runs successfully on laboratory PC.  Has not been tested oustide, running on embedded system, with buoys at long range.  Currently only written for one buoy.  \\
 - Algorithm development could use work.  Rolling estimator constrained by directional spectra would help against over-fitting to high frequencies and jumps between windows. Use of u,v velocities might be more accurate in field data. \\ 
 - Systematic error analysis would be useful for informing future experiments.  How many buoys are needed and how close together must they be?   How to relate the distance between array and target to the time window and delay?
+
+
+\bibliography{/Users/mike/Documents/UW/Research/Reading/allReferences}
 
 \end{document}  
