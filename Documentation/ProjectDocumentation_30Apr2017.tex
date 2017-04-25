@@ -52,7 +52,7 @@
 
 \maketitle
 \section{Introduction}
-This project is motivated by a long-standing problem in wave-energy generation.  It is known that wave energy converters (WECs) can produce significant gains in efficiency by using advanced control techniques.  However, such techniques often require advanced knowledge of the incoming waves \citep[see, for example,][]{Hals:2011}.  In the ideal case, the system is given an exact trace of the future wave excitation force.  As this is a difficult problem, most WECs are tuned instead based only on the average 30-minute bulk wave parameters. 
+This project is motivated by a long-standing problem in wave-energy generation.  It is known that wave energy converters (WECs) can produce significant gains in efficiency by using advanced control techniques \citep{Li:2012}.  However, such techniques often require advanced knowledge of the incoming waves \citep[see, for example,][]{Hals:2011}.  In the ideal case, the system is given an exact trace of the future wave excitation force.  As this is a difficult problem, most WECs are tuned instead based only on the average 30-minute bulk wave parameters. 
 
 The goal of this project is to provide a useful prediction of the incident waves on a WEC, using an array of networked buoys.  By useful we mean that when coupled with advanced control techniques, the wave prediction improves upon the WEC performance over just using average wave parameters.
 A related question, which may have widespread scientific applicability, is whether we can construct a realistic approximation of the sea surface from the sparse buoy array.
@@ -190,13 +190,71 @@ The \texttt{seasim} function takes as input the directional spectrum (in WAFO fo
 \end{figure}
 
 \subsection{Algorithm Performance for Simulated Data}
-- Two functions, one to calculate wave prediction at a point, one to make a gridded surface reconstruction.\\
-- Input parameters: buoy number and array shape, target location or grid size and resolution, wave components and regularization parameter, time windows and delay\\
-- Several examples.  Spectra source.  Buoy shape.  Buoy number.  Regularization and buoy components.  Time window.\\
-- Runtime results\\
+The synthetic wave data is used to test the validity of the least squares forecast algorithm.  This is done using the script \texttt{testWavePropagationModels.m}, and several helper functions.  Since the simulations are generated using linear dispersion, and the forecast assumes linear dispersion, given enough of the synthetic data the prediction should be almost perfect.  However, we want to test how well the algorithm can predict the waves given only a sparse number of points in the domain, simulating a small array of buoys.  Provided are two examples, \texttt{setBuoyArray\_Circle} and \texttt{setBuoyArray\_Box}, which take in the full synthetic data grid and output \texttt{x, y, } and \texttt{z} vectors of data sampled at ``buoys" in the shape of a circular arc or square box.  An infinite number of other shape options could be tested, but circles and squares seemed a good place to start.
+
+The buoy array shape (including the number of buoys) is just one of the input parameters to the algorithm.  The others are:
+\begin{enumerate}
+\item{The number of wave components.  These are defined as a vector of wavenumbers, \texttt{k} (in radians), and a vector of directions, \texttt{theta} (also radians).  To solve for the component amplitudes using least squares, an upper limit to the number of wave components is half of the number of observations (because each component has both a sine and cosine term).  Below that limit, more components means better resolution of the wave propagation speed and direction.  However, for many components the solution is less constrained (may be more prone to overfitting) and takes longer to solve.  Good results were found for 30-50 wavenumber components, spaced logarithmically over the energetic range of the energy spectrum, and 10-20 directional components, spaced linearly from -$\pi$ to $\pi$.}
+\item{The regularization parameter, \texttt{reg\_factor}, mentioned previously.  This can act in some ways as a ``tuning knob" for the fit, and is not yet well constrained.  Moreover, the optimal regularization factor appears to depend on the number of buoys and the number of wave components.  This makes sense in the context of regularization as a means of preventing overfitting.  Overfitting is less likely with a large number of observations relative to the number of coefficients being fit, thus less regularization (smaller \texttt{reg\_factor}) is needed.}
+\item{The observation and prediction time windows. This is needed to simulate the operational aspect of the predictions.  In practice, a window of time of the buoy measurements will be used to predict the waves at the WEC for a length of time later.  Thus, the governing parameters are the length of the observation window (\texttt{T\_meas}), the length of the prediction window (\texttt{T\_pred}), and the time delay between the end of the observation window and the start of the prediction window (\texttt{T\_delay}).  Finally, if the prediction window is shorter than the observation window, some overlap of the observation windows is needed to provide full coverage (\texttt{overlap}). It is expected that the optimal time windowing and delay will be related to the wave conditions (i.e. the dominant wave period and group velocity) and the distance of the buoy array to the WEC.}
+
+\end{enumerate}
+
+The final input is the location of the target point (or points).  In the WEC wave forecast problem, this would be a single point space, which may slightly drift in time depending on the currents, winds, and waves.  A related problem, which may also help troubleshoot the single point forecast, is to construct a gridded surface that approximates the wavefield.  Solutions to these two problems are implemented in separate two functions: \texttt{runLeastSquaresPrediction\_PointComparison.m} and \texttt{runLeastSquaresPrediction\_\\SurfaceReconstruction.m}.  In each case, the inputs include the buoy array observations, wave components, regularization parameter, and time window and delay parameters.  However, whereas in the point prediction case, the target is defined by two $N_t\times1$ vectors of $x$ and $y$ as a function of time, in the surface reconstruction case, the target points are $N_y \times N_x$ matrices of gridded $x$ and $y$ points (static in time).  Note, that it is easily possible to crash Matlab by making the $x$ and $y$ grids too large, for example, the size of the full simulation domain.
+
+The outputs of \texttt{runLeastSquaresPrediction\_PointComparison.m} are the predicted surface elevation at the target point \texttt{z\_pred}, at times \texttt{t\_pred}.  The predictions are of size $N_{t,pred}\times N_{windows}$, where $N_{t,pred} = $ \texttt{T\_pred/dt}, and $N_{windows}$ are the number of prediction windows.  The function also reports the actual measurement at the target point, \texttt{z\_truth}, sampled at the same time as \texttt{z\_pred} for easy comparison.  Meanwhile, 
+\texttt{runLeastSquaresPrediction\_SurfaceReconstruction.m} also outputs \texttt{z\_pred} and \texttt{t\_pred}, which are of size $N_{t,pred}\times N_{windows} \times (N_{x}*N_{y})$.  It is assumed that the true surface elevation is not known at each grid point, so no \texttt{z\_truth} array is output.
+
+An example of the simulated forecast is shown below.  The directional spectrum is taken from the CDIP Waverider buoy off San Nicolas Island (CDIP 138), from March 2016.  This data is applicable as it is near the time of year and location of the field experiments described in Section 4.  Furthermore, this example could be considered close to a best case scenario, given a limited number of SWIFTs.  The buoy array is positioned about one wavelength upwave of the target point, with enough spread to determine wave direction.  The wave conditions consist of energetic, long-period swell and very little wind sea, which make for highly coherent wave crests.  And finally, the regularization parameter, time windows, and delay have been tuned for optimal performance.  The relevant parameters are given below.
+
+\lstset{language=Matlab}
+ \begin{lstlisting}
+arrayShape = 'circle';
+% Setup buoy array - Circle
+n_theta = 3;
+theta_spread = 90; % deg
+dir_principal = cell2mat(dspec2char(S_Measured,'Wdir'))*180/pi; % peak direction
+theta = linspace(dir_principal-theta_spread/2,dir_principal+theta_spread/2,n_theta)';
+circle_radius = [150];
+
+% set time bursts duration/delay etc
+T_meas = 30; %sec
+T_pred = 10; %sec
+T_delay = 5; %sec,
+overlap = 0.3; % 1=no overlap, 0.5=50%, etc
+
+% set least squares model values
+k = logspace(-3,-1,41)*2*pi;
+theta_wavenumber = linspace(-180,180,13)*pi/180;
+theta_wavenumber = theta_wavenumber(2:end);
+reg_factor = 1e0;
+\end{lstlisting}
+
+For these parameters, it takes on average 0.1 seconds to make each 10 second prediction at a single point (note that $dt=1$ second for these simulations, so this would increase for higher fidelity data).  The resulting prediction for a WEC located at the center of the domain is shown in Figure \ref{fig:SimulationPointComparison}.  The top panel shows the measured and predicted time series, while the bottom left shows one frame of the simulation and the locations of the array (red) and target (black) points.  Finally, the bottom right panel shows a scatter plot of the measured and predicted time series, and associated $R^2$.  The surface prediction is highly correlated with the ``true" original simulation data, though it tends to systematically underpredict the height of the waves.  This would be improved by adding more SWIFTs, but this provides a good baseline for the  measurements in Section 4.  A similar comparison is shown in Figure \ref{fig:Rendered}, where the buoys and simulation surface have been rendered and animated.  A full movie is available in the documentation folder.
+
+\begin{figure}[t]
+    \centering
+    \noindent\includegraphics[width=5.5in]{PointPrediction.png}\\
+   \vspace{-0in}\caption{Example wave forecast from simulated data.}\label{fig:SimulationPointComparison}
+\end{figure}
+
+\begin{figure}[t]
+    \centering
+    \noindent\includegraphics[width=6.5in]{SimulationFrame_145.png}\\
+   \vspace{-0in}\caption{Example wave forecast from simulated data (rendered).}\label{fig:Rendered}
+\end{figure}
+
+Finally, an example surface reconstruction for the same synthetic data and algorithm parameters is shown in Figure \ref{fig:SurfaceReconstruction}.  Again, a full movie is available in the documentation folder.  As seen in the point-wise comparison, the surface reconstruction movie makes clear that the wave motions are being well captured, with the forecast missing the full extent of the wave peaks and troughs. 
+
+\begin{figure}[t]
+    \centering
+    \noindent\includegraphics[width=2.5in]{SurfacePrediction_057.png}\\
+   \vspace{-0in}\caption{Example surface reconstruction from simulated data.}\label{fig:SurfaceReconstruction}
+\end{figure}
 
 \subsection{Future Work}
-The simulations show that the least squares forecast algorithm can work well with only a limited number of buoys under ideal conditions, namely, long-crested, energetic swells with little wind sea.  Moreover, they show that there is significant sensitivity based on the spatial location of the buoy array, relative to the wave conditions and the parameters of the least squares fit.  Clearly, there are many questions that the synthetic data cannot address, such as the complicating factor of nonlinearity.  However, to better inform future field experiments, a systematic analysis of the relationship of the different parameters to the forecast error would be useful.  For example, how does the error scale with the ratio of the buoy array separation to the peak wavelength?  How many buoys are needed, and does it change with different wave conditions?  Perhaps most critical is understanding the time window for making a valid forecast, and how that depends on the other parameters.  There is some work being done on this subject in the laboratory of Dick Yue at MIT, particularly his graduate student Yusheng Qi, although it is as yet unpublished.
+
+The simulations prove that the least squares forecast algorithm can work well even with a limited number of buoys, particularly when the conditions are well-suited for the predictions (namely, long-crested, energetic swells with little wind sea).  Moreover, they show that there is significant sensitivity based on the spatial location of the buoy array, relative to the wave conditions and the parameters of the least squares fit.  Clearly, there are many questions that the synthetic data cannot address, such as the complicating factor of nonlinearity.  However, to better inform future field experiments, a systematic analysis of the relationship of the different parameters to the forecast error would be useful.  For example, how does the error scale with the ratio of the buoy array separation to the peak wavelength?  How many buoys are needed, and does it change with different wave conditions?  Perhaps most critical is understanding the time window for making a valid forecast, and how that depends on the other parameters.  There is some work being done on this subject in the laboratory of Dick Yue at MIT, particularly his graduate student Yusheng Qi, although it is as yet unpublished.
 
 These simulations also provide a convenient laboratory for experimenting with the forecast algorithm.  One promising idea for improving the algorithm is to add to the least squares cost function a soft constraint based on the directional wave spectra.  Since on average the wave component amplitudes will match the measured spectra, the best guess of the amplitudes for any one window of data would also match the spectra.  This would amount to providing an individual \texttt{reg\_factor} for each component of the fit, although it is not immediately clear how the spectral values would translate into the cost function values (for example, are they proportional?).  Some care would be needed in implementing this strategy.
 
@@ -208,11 +266,13 @@ These simulations also provide a convenient laboratory for experimenting with th
 - Future work: rolling algorithm with incrementation, use velocity data\\
 
 \section{Summary of Future Work}
-- So far IO software integration and algorithm development progressed separately.  \\
-- Hardware and IO integration could be ready for testing soon. Runs successfully on laboratory PC.  Has not been tested oustide, running on embedded system, with buoys at long range.  Currently only written for one buoy.  \\
-- Algorithm development could use work.  Rolling estimator constrained by directional spectra would help against over-fitting to high frequencies and jumps between windows. Use of u,v velocities might be more accurate in field data. \\ 
-- Systematic error analysis would be useful for informing future experiments.  How many buoys are needed and how close together must they be?   How to relate the distance between array and target to the time window and delay?
-
+The above methodology has shown promise, in simulations and post-processing of real data, for providing a useful wave prediction at a WEC site given the right wave conditions and adequate array placement.  However, there are still several large additions and modifications that must be addressed to prove that it can work operationally in real time.  So far, the operational work and algorithm development have progressed separately, which has been effective and should continue until the necessary improvements have been made on each side.  To summarize, the most pressing needs are:
+\begin{itemize}
+\item{Testing of the communication of real-time SWIFT array data over the Ethernet Bridge in open water, and logging on the WEC embedded computer using the Python code.  Also, modification of the Python code to handle incoming data from multiple SWIFTs.}
+\item{Algorithm improvements, including implementation of a rolling estimator constrained by the previous 30-minute directional spectra.  These would help against over-fitting to wave components with high frequencies and unrealistic wave directions, and would smooth discontinuities between prediction windows.  The use of $u$ and $v$ velocities from GPS may prove more accurate in the field data}.
+\item{A systematic error analysis that will help to determine the parameters of the prediction algorithm in an operational setting.  For example, how many buoys are needed and how close together must they be for a given set of wave conditions?  Or, how to choose the time window and delay of the prediction based on the waves and the distance between array and target?}
+\end{itemize}
+Finally, the results of these experiments need to be discussed with the experts in WEC dynamics and controls, to better decide on what outputs would be useful on their end.  It is likely that even an imperfect phase-resolved wave prediction would be an improvement over the current state of the art, which uses only the average wave statistics.
 
 \bibliography{/Users/mike/Documents/UW/Research/Reading/allReferences}
 

@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015) (preloaded format=pdflatex 2015.5.24)  24 APR 2017 00:10
+This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015) (preloaded format=pdflatex 2015.5.24)  24 APR 2017 18:19
 entering extended mode
  \write18 enabled.
  %&-line parsing enabled.
@@ -507,26 +507,53 @@ Package pdftex.def Info: FrequencySpectra.png used on input line 188.
 (pdftex.def)             Requested size: 397.48499pt x 298.11302pt.
 LaTeX Font Info:    Font shape `OT1/cmtt/bx/n' in size <9> not available
 (Font)              Font shape `OT1/cmtt/m/n' tried instead on input line 189.
+ [9] [10 <./FrequencySpectra.png (PNG copy)>]
+Overfull \hbox (3.55821pt too wide) in paragraph at lines 205--207
+\OT1/cmtt/m/n/10.95 runLeastSquaresPrediction[]SurfaceReconstruction.m \OT1/cmr
+/m/n/10.95 also out-puts \OT1/cmtt/m/n/10.95 z[]pred \OT1/cmr/m/n/10.95 and \OT
+1/cmtt/m/n/10.95 t[]pred\OT1/cmr/m/n/10.95 ,
+ []
 
-Underfull \hbox (badness 10000) in paragraph at lines 193--197
+[11] <PointPrediction.png, id=229, 562.2606pt x 421.575pt>
+File: PointPrediction.png Graphic file (type png)
+
+<use PointPrediction.png>
+Package pdftex.def Info: PointPrediction.png used on input line 237.
+(pdftex.def)             Requested size: 397.48499pt x 298.02736pt.
+
+<SimulationFrame_145.png, id=230, 1156.32pt x 722.7pt>
+File: SimulationFrame_145.png Graphic file (type png)
+
+<use SimulationFrame_145.png>
+Package pdftex.def Info: SimulationFrame_145.png used on input line 243.
+(pdftex.def)             Requested size: 469.75499pt x 293.59615pt.
+
+Overfull \hbox (39.75037pt too wide) in paragraph at lines 243--243
+ [] 
+ []
+
+<SurfacePrediction_057.png, id=231, 361.35pt x 578.16pt>
+File: SurfacePrediction_057.png Graphic file (type png)
+
+<use SurfacePrediction_057.png>
+Package pdftex.def Info: SurfacePrediction_057.png used on input line 251.
+(pdftex.def)             Requested size: 180.67499pt x 289.07928pt.
+ [12] [13 <./PointPrediction.png (PNG copy)>]
+Underfull \hbox (badness 10000) in paragraph at lines 262--267
 
  []
 
-[9] [10 <./FrequencySpectra.png (PNG copy)>]
-Underfull \hbox (badness 10000) in paragraph at lines 204--209
-
- []
-
-(./ProjectDocumentation_30Apr2017.bbl [11]) [12]
+[14 <./SimulationFrame_145.png (PNG copy)>] [15 <./SurfacePrediction_057.png (P
+NG copy)>] (./ProjectDocumentation_30Apr2017.bbl) [16]
 (./ProjectDocumentation_30Apr2017.aux) ) 
 Here is how much of TeX's memory you used:
- 6758 strings out of 493089
- 97793 string characters out of 6134842
- 242431 words of memory out of 5000000
- 10146 multiletter control sequences out of 15000+600000
+ 6794 strings out of 493089
+ 98513 string characters out of 6134842
+ 254419 words of memory out of 5000000
+ 10179 multiletter control sequences out of 15000+600000
  13646 words of font info for 49 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 42i,7n,40p,1188b,1423s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 42i,7n,40p,1237b,1423s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/local/texlive/2015/texmf-dist/fon
 ts/enc/dvips/cm-super/cm-super-ts1.enc}</usr/local/texlive/2015/texmf-dist/font
 s/type1/public/amsfonts/cm/cmbx10.pfb></usr/local/texlive/2015/texmf-dist/fonts
@@ -546,10 +573,11 @@ s/cm/cmsy10.pfb></usr/local/texlive/2015/texmf-dist/fonts/type1/public/amsfonts
 cm/cmtt10.pfb></usr/local/texlive/2015/texmf-dist/fonts/type1/public/amsfonts/c
 m/cmtt9.pfb></usr/local/texlive/2015/texmf-dist/fonts/type1/public/cm-super/sfr
 m1095.pfb>
-Output written on ProjectDocumentation_30Apr2017.pdf (12 pages, 720105 bytes).
+Output written on ProjectDocumentation_30Apr2017.pdf (16 pages, 1341722 bytes).
+
 PDF statistics:
- 288 PDF objects out of 1000 (max. 8388607)
- 175 compressed objects within 2 object streams
+ 304 PDF objects out of 1000 (max. 8388607)
+ 184 compressed objects within 2 object streams
  0 named destinations out of 1000 (max. 500000)
- 16 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 31 words of extra memory for PDF output out of 10000 (max. 10000000)
 

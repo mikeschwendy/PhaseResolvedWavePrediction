@@ -16,6 +16,7 @@ z_target_pred = nan(num_bursts,Nt_pred);
 z_target_truth = nan(num_bursts,Nt_pred);
 
 % loop over bursts, make least squares prediction
+tic
 for i = 1:num_bursts
     % collect buoy array measurements for this burst
     t_target_ind = t_meas_start_ind(i):(t_meas_start_ind(i)+Nt_meas-1);
@@ -35,3 +36,4 @@ for i = 1:num_bursts
         z_target_truth(i,:) = z_target(t_pred_ind);
     end
 end
+t = toc/num_bursts

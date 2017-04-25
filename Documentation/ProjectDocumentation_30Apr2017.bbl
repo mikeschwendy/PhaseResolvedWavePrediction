@@ -29,4 +29,11 @@ Hals, J., J.~Falnes, and T.~Moan (2011).
 \newblock Constrained optimal control of a heaving buoy wave-energy converter.
 \newblock {\em J. Offshore Mech. and Arctic Eng.\/}~{\em 133}.
 
+\bibitem[\protect\citeauthoryear{Li, Weiss, Mueller, Townley, and Belmont}{Li
+  et~al.}{2012}]{Li:2012}
+Li, G., G.~Weiss, M.~Mueller, S.~Townley, and M.~R. Belmont (2012).
+\newblock Wave energy converter control by wave prediction and dynamic
+  programming.
+\newblock {\em Renewable Energy\/}~{\em 48}, 392 -- 403.
+
 \end{thebibliography}
